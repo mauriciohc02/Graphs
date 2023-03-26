@@ -27,18 +27,19 @@ class Graph:
     def add_edge(self, i, j):
         # Method to add an arist from one node to another node
         self.adj_matrix[i][j] = True
+        self.adj_matrix[j][i] = True
 
-    """
+
     def remove_edge(self, i, j):
         self.adj_matrix[i][j] = False
-    """
+        self.adj_matrix[j][i] = False
 
     def has_edge(self, i, j):
         # Method to verify if there is a connection between two nodes
         try:
             return self.adj_matrix[i][j]
         except:
-            return True
+            return None
 
     def __str__(self) -> str:
         return f'Graph Object'

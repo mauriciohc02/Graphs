@@ -6,16 +6,16 @@ from random import randint
 from utils.graph import Graph
 
 
-class AddEdgeWindow(QWidget):
+class AddRemoveEdgeWindow(QWidget):
     """
     class to display a pop-up window where 
     the origin and destination of the new edge are entered.
     """
 
-    def __init__(self):
+    def __init__(self, type=1):
         super().__init__()
-        self.setWindowTitle('Add Edge')
         self.center()
+        self.error_message = QMessageBox()
 
         layouth = QHBoxLayout()
         layoutv = QVBoxLayout()
@@ -23,14 +23,21 @@ class AddEdgeWindow(QWidget):
         self.input = QLineEdit()
         self.label2 = QLabel("To:")
         self.input2 = QLineEdit()
-        self.buttonAdd = QPushButton("Add edge")
+        self.buttonDo = QPushButton("")
         layouth.addWidget(self.label)
         layouth.addWidget(self.input)
         layouth.addWidget(self.label2)
         layouth.addWidget(self.input2)
         layoutv.addLayout(layouth)
-        layoutv.addWidget(self.buttonAdd)
+        layoutv.addWidget(self.buttonDo)
         self.setLayout(layoutv)
+
+        self.changeType(type)
+
+    def changeType(self, type):
+        text = "Add Edge" if type == 1 else "Remove Edge"
+        self.setWindowTitle(text)
+        self.buttonDo.setText(text)
 
     def center(self):
         """ 
@@ -114,26 +121,30 @@ class GraphAnimation(QWidget):
 
         self.tracking = None
 
+
     def init_UI(self) -> None:
         """
         Create each element and object of the Widget UI
         returns: None
         rtype: None
         """
-        self.addEdgeWindow = AddEdgeWindow()
         self.startTraversalWindow = StartTraversalWindow()
-        self.new_edge = False
-        self.button_reset = QPushButton(
-            QIcon('./images/remove_all.png'), '', self)
+
+
+        self.button_reset = QPushButton(QIcon('./images/remove_all.png'), '', self)
         self.button_reset.setIconSize(QSize(self.icon_size, self.icon_size))
         self.button_reset.setToolTip('Reset Animation')
         self.button_reset.clicked.connect(self.reset)
 
-        self.button_edge = QPushButton(
-            QIcon('./images/add_edge.png'), '', self)
-        self.button_edge.setIconSize(QSize(self.icon_size, self.icon_size))
-        self.button_edge.setToolTip('Add Edge')
-        self.button_edge.clicked.connect(self.add_edge)
+        self.button_add_edge = QPushButton(QIcon('./images/add_edge.png'), '', self)
+        self.button_add_edge.setIconSize(QSize(self.icon_size, self.icon_size))
+        self.button_add_edge.setToolTip('Add Edge')
+        self.button_add_edge.clicked.connect(self.add_edge)
+
+        self.button_remove_edge = QPushButton(QIcon('./images/remove_edge.png'), '', self)
+        self.button_remove_edge.setIconSize(QSize(self.icon_size, self.icon_size))
+        self.button_remove_edge.setToolTip('Remove Edge')
+        self.button_remove_edge.clicked.connect(self.remove_edge)
 
         self.button_bfs = QPushButton(QIcon('./images/bfs.png'), '', self)
         self.button_bfs.setIconSize(QSize(self.icon_size, self.icon_size))
@@ -145,22 +156,24 @@ class GraphAnimation(QWidget):
         self.button_dfs.setToolTip('Depth-First Search')
         self.button_dfs.clicked.connect(self.dfs_animation)
 
-        self.layout_aux = QVBoxLayout()
-        self.layout_aux.addWidget(self.button_edge)
+        self.layout_aux = QHBoxLayout()
+        self.layout_aux.addWidget(self.button_add_edge)
+        self.layout_aux.addWidget(self.button_remove_edge)
         self.layout_aux.addWidget(self.button_reset)
         self.layout_aux.addWidget(self.button_bfs)
         self.layout_aux.addWidget(self.button_dfs)
         self.layout_aux.addStretch(1)
 
-        self.layout_main = QHBoxLayout()
-        self.layout_main.addStretch(1)
+        self.layout_main = QVBoxLayout()
         self.layout_main.addLayout(self.layout_aux)
+        self.layout_main.addStretch(1)
         self.setLayout(self.layout_main)
 
         self.welcome_message = QMessageBox(self)
         self.welcome_message.setWindowTitle('Welcome')
         self.welcome_message.setInformativeText(
             'Welcome to Graph!\nClick on the screen and see what happens!')
+
 
     def draw_points(self, painter) -> None:
         """
@@ -176,11 +189,14 @@ class GraphAnimation(QWidget):
             node_value = str(self.qPointsF.index(p))
             painter.drawText(int(p.x() - 5), int(p.y() + 5), node_value)
 
+
     def buttons_enabled(self, b):
         # method to deactivate or activate buttons
         self.button_dfs.setEnabled(b)
         self.button_bfs.setEnabled(b)
-        self.button_edge.setEnabled(b)
+        self.button_add_edge.setEnabled(b)
+        self.button_remove_edge.setEnabled(b)
+
 
     def updateCircle(self):
         # method to change every two seconds which points should be painted
@@ -194,6 +210,7 @@ class GraphAnimation(QWidget):
                 self.painted_circles.append(circle)
                 self.buttons_enabled(False)
         self.update()
+
 
     def draw_edges(self, painter):
         """
@@ -215,44 +232,92 @@ class GraphAnimation(QWidget):
         for l in self.edges:
             painter.drawLine(l)
 
-    def getOriginDestination(self):
+
+    def getOriginDestination(self, type):
+        print(type)
+        if self.graph.size == 0:
+            self.AddRemoveEdgeWindow.hide()
+            self.messageBox(QMessageBox.Information, "No hay nodos", "El grafo actual no cuenta con nodos")
+            return
+
         # method to obtain the origin and destination points of the arrow
-        origin = self.addEdgeWindow.input.text()
-        destination = self.addEdgeWindow.input2.text()
+        origin = self.AddRemoveEdgeWindow.input.text()
+        destination = self.AddRemoveEdgeWindow.input2.text()
         # the data must be numbers
         if origin.isdigit() and destination.isdigit():
-            self.addEdgeWindow.hide()
+            self.AddRemoveEdgeWindow.hide()
             # if there is not yet an edge between these nodes
-            if (self.graph.has_edge(int(origin), int(destination)) == False):
-                self.graph.add_edge(int(origin), int(destination))
 
-                # if the origin and destination are not the same
-                if (origin != destination):
-                    p1 = self.qPointsF[int(origin)]
-                    p2 = self.qPointsF[int(destination)]
-                    edge = QLineF(p1, p2)
+            if type == 1:
+                if self.graph.has_edge(int(origin), int(destination)) == False:
+                    # if the origin and destination are not the same
+                    if (origin != destination):
+                        self.graph.add_edge(int(origin), int(destination))
 
-                    self.edges.append(edge)
+                        p1 = self.qPointsF[int(origin)]
+                        p2 = self.qPointsF[int(destination)]
+                        edge = QLineF(p1, p2)
+
+                        self.edges.append(edge)
+                    else:
+                        self.messageBox(QMessageBox.Critical, "Error!", "No se puede unir el nodo consigo mismo")
+                elif self.graph.has_edge(int(origin), int(destination)) == True:
+                    self.messageBox(QMessageBox.Information, "Hecho!", "El enlace ya ha sido creado")
+                else:
+                    self.messageBox(QMessageBox.Information, "No existe!", "Los nodos a unir no existen")
+
+            elif type == 2:
+                if (self.graph.has_edge(int(origin), int(destination)) == True):
+                    self.graph.remove_edge(int(origin), int(destination))
+                    index = 0
+                    for i, edge in enumerate(self.edges):
+                        if edge.p1() == self.qPointsF[int(origin)] and edge.p2() == self.qPointsF[int(destination)]:
+                            index = i
+                        elif edge.p1() == self.qPointsF[int(destination)] and edge.p2() == self.qPointsF[int(origin)]:
+                            index = 1
+                        else:
+                            index = None
+
+                        if index:
+                            self.edges.pop(index)
+                else:
+                    self.messageBox(QMessageBox.Information, "No existe!", "El enlace que quiere eliminar no existe")
 
             self.update()
 
+
     def add_edge(self):
         # the window for adding an edge is activated
-        self.addEdgeWindow.show()
-        self.addEdgeWindow.buttonAdd.clicked.connect(self.getOriginDestination)
-        self.new_edge = True
+        self.AddRemoveEdgeWindow = AddRemoveEdgeWindow()
+        self.AddRemoveEdgeWindow.changeType(1)
+        self.AddRemoveEdgeWindow.buttonDo.clicked.connect(lambda _, type=1: self.getOriginDestination(type))
+        self.AddRemoveEdgeWindow.show()
+        
+
+    def remove_edge(self):
+        # the window for removing an edge is activated
+        self.AddRemoveEdgeWindow = AddRemoveEdgeWindow()
+        self.AddRemoveEdgeWindow.changeType(2)
+        self.AddRemoveEdgeWindow.buttonDo.clicked.connect(lambda _, type=2: self.getOriginDestination(type))
+        self.AddRemoveEdgeWindow.show()
+
 
     def dfs_animation(self):
         self.startTraversalWindow.show()
         self.startTraversalWindow.buttonAdd.clicked.connect(
             self.getFirstNodeDFS)
 
+
     def bfs_animation(self):
         self.startTraversalWindow.show()
         self.startTraversalWindow.buttonAdd.clicked.connect(
             self.getFirstNodeBFS)
+        
 
     def getFirstNodeBFS(self):
+        if self.graph.size == 0:
+            return
+
         # method to obtain the list with bfs route
         node = self.startTraversalWindow.input.text()
         if node.isdigit():
@@ -263,7 +328,11 @@ class GraphAnimation(QWidget):
                 self.start_animation = True
                 self.active_traversal = self.bfs_traversal
 
+
     def getFirstNodeDFS(self):
+        if self.graph.size == 0:
+            return
+
         # method to obtain the list with dfs route
         node = self.startTraversalWindow.input.text()
         if node.isdigit():
@@ -326,9 +395,7 @@ class GraphAnimation(QWidget):
         painter = QPainter(self)
         painter.setRenderHints(QPainter.Antialiasing)
 
-        if (self.new_edge):
-            self.draw_edges(painter)
-
+        self.draw_edges(painter)
         self.draw_points(painter)
 
         if self.active_traversal is not None:
@@ -393,6 +460,14 @@ class GraphAnimation(QWidget):
         rtype: None
         """
         self.tracking = None
+
+    def messageBox(self, icon, title, text):
+        msgBox = QMessageBox()
+        msgBox.setIcon(icon)
+        msgBox.setText(text)
+        msgBox.setWindowTitle(title)
+        msgBox.setStandardButtons(QMessageBox.Close)
+        msgBox.exec()
 
     def __str__(self) -> str:
         return f'GraphAnimation Object'
