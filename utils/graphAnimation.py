@@ -1,7 +1,6 @@
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-from random import randint
 
 from utils.graph import Graph
 
@@ -234,7 +233,7 @@ class GraphAnimation(QWidget):
 
 
     def getOriginDestination(self, type):
-        print(type)
+        # print(type)
         if self.graph.size == 0:
             self.AddRemoveEdgeWindow.hide()
             self.messageBox(QMessageBox.Information, "No hay nodos", "El grafo actual no cuenta con nodos")
