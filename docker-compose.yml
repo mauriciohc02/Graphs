@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  app:
+    image: mauriciohc/graphs:latest
+    container_name: Graphs
+    network_mode: "host"
+    environment:
+      - "DISPLAY"
+      
